@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Text;
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
@@ -20,15 +22,22 @@ IKernel kernel = Kernel.Builder
 IChatCompletion ai = kernel.GetService<IChatCompletion>();
 ChatHistory chat = ai.CreateNewChat("You are an AI assistant that helps people find information.");
 
+StringBuilder builder = new();
+
 // Q&A loop
 while (true)
 {
     Console.Write("Question: ");
     chat.AddUserMessage(Console.ReadLine()!);
 
-    string answer = await ai.GenerateMessageAsync(chat);
-    chat.AddAssistantMessage(answer);
-    Console.WriteLine(answer);
+    builder.Clear();
+    await foreach (string message in ai.GenerateMessageStreamAsync(chat))
+    {
+        Console.Write(message);
+        builder.Append(message);
+    }
+    Console.WriteLine();
+    chat.AddAssistantMessage(builder.ToString());
 
     Console.WriteLine();
 }
