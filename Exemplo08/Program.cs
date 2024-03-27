@@ -10,8 +10,7 @@ using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
-using Microsoft.SemanticKernel.Planning;
-using Microsoft.SemanticKernel.SkillDefinition;
+
 using Microsoft.SemanticKernel.Text;
 using Microsoft.SemanticKernel.Connectors.Memory.Qdrant;
 

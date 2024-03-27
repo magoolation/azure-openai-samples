@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.UserSecrets;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI.Embeddings;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextEmbedding;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Embeddings;
 
 var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
@@ -10,11 +8,13 @@ var config = new ConfigurationBuilder()
 
 string aoaiEndpoint = config["AZUREOPENAI_ENDPOINT"]!;
 string aoaiApiKey = config["AZUREOPENAI_API_KEY"]!;
-var embeddingGen = new AzureTextEmbeddingGeneration("textembeddingada002", aoaiEndpoint, aoaiApiKey);
+#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+var embeddingGen = new AzureOpenAITextEmbeddingGenerationService("textembeddingada002", aoaiEndpoint, aoaiApiKey);
+#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 string input = "What is an amphibian?";
-string[] examples =
-{
+List<string>examples =
+[
     "What is an amphibian?",
     "Cos'è un anfibio?",
     "A frog is an amphibian.",
@@ -28,15 +28,19 @@ string[] examples =
     "A dog is a man's best friend.",
     "You ain't never had a friend like me.",
     "Rachel, Monica, Phoebe, Joey, Chandler, Ross",
-};
+];
 
 // Generate embeddings for each piece of text
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 ReadOnlyMemory<float> inputEmbedding = await embeddingGen.GenerateEmbeddingAsync(input);
+#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 ReadOnlyMemory<float>[] exampleEmbeddings = await Task.WhenAll(examples.Select(example => embeddingGen.GenerateEmbeddingAsync(example)));
+#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Print the cosine similarity between the input and each example
 float[] similarity = exampleEmbeddings.Select(e => CosineSimilarity(e.Span, inputEmbedding.Span)).ToArray();
-similarity.AsSpan().Sort(examples.AsSpan(), (f1, f2) => f2.CompareTo(f1));
+Array.Sort(similarity, (f1, f2) => f2.CompareTo(f1));
 Console.WriteLine("Similarity Example");
 for (int i = 0; i < similarity.Length; i++)
     Console.WriteLine($"{similarity[i]:F6}   {examples[i]}");

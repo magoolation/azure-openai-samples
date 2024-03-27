@@ -1,9 +1,12 @@
 ﻿using System.Text;
 
+using Azure.AI.OpenAI;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
@@ -14,13 +17,13 @@ string aoaiApiKey = config["AZUREOPENAI_API_KEY"]!;
 string aoaiModel = "gpt35turbo";
 
 // Initialize the kernel
-IKernel kernel = Kernel.Builder
-    .WithAzureChatCompletionService(aoaiModel, aoaiEndpoint, aoaiApiKey)
+Kernel kernel = Kernel.CreateBuilder()
+    .AddAzureOpenAIChatCompletion(aoaiModel, aoaiEndpoint, aoaiApiKey)
     .Build();
 
 // Create a new chat
-IChatCompletion ai = kernel.GetService<IChatCompletion>();
-ChatHistory chat = ai.CreateNewChat("You are an AI assistant that helps people find information.");
+IChatCompletionService ai = kernel.GetRequiredService<IChatCompletionService>();
+ChatHistory chat = new ChatHistory("You are an AI assistant that helps people find information.");
 
 StringBuilder builder = new();
 
@@ -31,7 +34,7 @@ while (true)
     chat.AddUserMessage(Console.ReadLine()!);
 
     builder.Clear();
-    await foreach (string message in ai.GenerateMessageStreamAsync(chat))
+    await foreach (var message in ai.GetStreamingChatMessageContentsAsync(chat))
     {
         Console.Write(message);
         builder.Append(message);

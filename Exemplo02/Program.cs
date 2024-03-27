@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.UserSecrets;
+﻿using System.ComponentModel;
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.SkillDefinition;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
@@ -12,32 +13,39 @@ string aoaiApiKey = config["AZUREOPENAI_API_KEY"]!;
 string aoaiModel = "gpt35turbo";
 
 // Initialize the kernel
-IKernel kernel = Kernel.Builder
-    .WithAzureChatCompletionService(aoaiModel, aoaiEndpoint, aoaiApiKey)
+Kernel kernel = Kernel.CreateBuilder()
+    .AddAzureOpenAIChatCompletion(aoaiModel, aoaiEndpoint, aoaiApiKey)
     .Build();
 
+OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
+{
+    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+};
+
 // Register functions with the kernel
-kernel.RegisterCustomFunction(SKFunction.FromNativeFunction(
-    () => $"{DateTime.UtcNow:r}",
-    "DateTime", "Now",
-    "Gets the current date and time"));
-ISKFunction qa = kernel.CreateSemanticFunction("""
+kernel.Plugins.AddFromType<Time>("datetime");
+
+var qa = kernel.CreateFunctionFromPrompt("""
+    Answer on the language of the request
     The current date and time is {{ datetime.now }}.
     {{ $input }}
-    """, maxTokens: 2000);
+    """, openAIPromptExecutionSettings);
+
 
 // Q&A loop
 while (true)
 {
     Console.Write("Question: ");
-    Console.WriteLine(await qa.InvokeAsync(Console.ReadLine()!, kernel.Skills));
+    Console.WriteLine(await qa.InvokeAsync(kernel, new ()
+    {
+        { "Input", Console.ReadLine()! }
+    }));
     Console.WriteLine();
 }
 
-// Q&A loop
-while (true)
+class Time
 {
-    Console.Write("Question: ");
-    Console.WriteLine(await kernel.InvokeSemanticFunctionAsync(Console.ReadLine()!, maxTokens: 2000));
-    Console.WriteLine();
+    [KernelFunction("now")]
+    [Description("Gets the current date and time")]
+    public string Now() => $"{DateTime.UtcNow:r}";
 }

@@ -1,16 +1,8 @@
-﻿using System.Net;
-using System.Text.RegularExpressions;
-using System.Text;
+﻿using System.Text;
 
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
-using Microsoft.SemanticKernel.Memory;
-using Microsoft.SemanticKernel.Text;
-using Microsoft.SemanticKernel.SkillDefinition;
-using Microsoft.SemanticKernel.Planning;
 
 var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
@@ -21,12 +13,13 @@ string aoaiApiKey = config["AZUREOPENAI_API_KEY"]!;
 string aoaiModel = "gpt35turbo";
 
 // Initialize the kernel
-IKernel kernel = Kernel.Builder
-    .WithLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
-    .WithAzureChatCompletionService(aoaiModel, aoaiEndpoint, aoaiApiKey)
-    .WithAzureTextEmbeddingGenerationService("textembeddingada002", aoaiEndpoint, aoaiApiKey)
-    .WithMemoryStorage(new VolatileMemoryStore())
+#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+Kernel kernel = Kernel.CreateBuilder()    
+    .AddAzureOpenAIChatCompletion(aoaiModel, aoaiEndpoint, aoaiApiKey)
+    .AddAzureOpenAITextEmbeddingGeneration("textembeddingada002", aoaiEndpoint, aoaiApiKey)
+    //.AddMem
     .Build();
+#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Register functions with the kernel
 kernel.RegisterCustomFunction(SKFunction.FromNativeFunction(

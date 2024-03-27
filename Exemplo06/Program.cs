@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Text;
 using Microsoft.SemanticKernel.Connectors.Memory.Sqlite;
@@ -20,15 +20,18 @@ string aoaiApiKey = config["AZUREOPENAI_API_KEY"]!;
 string aoaiModel = "gpt35turbo";
 
 // Initialize the kernel
-IKernel kernel = Kernel.Builder
-    .WithLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
-    .WithAzureChatCompletionService(aoaiModel, aoaiEndpoint, aoaiApiKey)
-    .WithAzureTextEmbeddingGenerationService("textembeddingada002", aoaiEndpoint, aoaiApiKey)
+#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+Kernel kernel = Kernel.CreateBuilder()    
+    .AddAzureOpenAIChatCompletion(aoaiModel, aoaiEndpoint, aoaiApiKey)
+    .AddAzureOpenAITextEmbeddingGeneration("textembeddingada002", aoaiEndpoint, aoaiApiKey)
     .WithMemoryStorage(await SqliteMemoryStore.ConnectAsync("mydata.db"))
     .Build();
+#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Ensure we have embeddings for our document
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 ISemanticTextMemory memory = kernel.Memory;
+#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 IList<string> collections = await memory.GetCollectionsAsync();
 string collectionName = "net7perf";
 if (collections.Contains(collectionName))
